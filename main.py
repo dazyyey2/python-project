@@ -39,7 +39,8 @@ def get_file():
             print('Please enter a valid filename from the current directory') #Ask user for valid filename after file is not found
         
     return None #Return None if selection was cancelled
-        
+
+# Basic statistics: bar chart of text composition and pie chart of character types      
 # Total number of lines
 # Total number of words
 # Total number of characters (with and without spaces)
@@ -54,6 +55,7 @@ def get_basic_statistics(file):
     statistics['total_characters_no_spaces'] = 0
     statistics['avg_words_per_line'] = 0
     statistics['avg_characters_per_word'] = 0
+    
     #Go through file line-by-line and save basic statistics in dictionary
     with open(file, 'r', encoding='utf-8') as file_stream:
         line = file_stream.readline() #Read first line of the file
@@ -73,6 +75,59 @@ def get_basic_statistics(file):
     statistics['avg_characters_per_word'] = round(statistics['total_characters_no_spaces']/statistics['total_words'], 3)
     
     return statistics
+
+# Word analysis: bar chart of most common words and histogram of word lengths
+# Most common words (top 10)
+# • Word length distribution
+# • Unique word count
+# • Words appearing only once
+def word_analysis(file):
+    unique_words = set()
+    word_lengths_unique = []
+    word_lengths_duplicates = []
+    unique_words_count = 0
+    common_words = {}
+    with open(file, 'r', encoding='utf-8') as file_stream:
+        line = file_stream.readline() #Read first line of the file
+        while line != '':
+            line = line.strip().lower() #Create separate variable without newline and blankspace
+            clean_text = ''
+            #Clean text by only including words (no digits etc)
+            for word in line.split():
+                for char in word:
+                    if char.isalpha() or char.isspace():
+                        clean_text += char
+                    else:
+                        clean_text += ''
+            
+            line_filtered = clean_text.split()
+            
+            for word in line_filtered:
+                unique_words.add(word)
+                word_lengths_duplicates.append(word)
+                
+                #Count how many times each word duplicates and save it in common_words
+                if word in common_words:
+                    common_words[word] += 1
+                else:
+                    common_words[word] = 1
+
+            line = file_stream.readline()
+            
+    for word in unique_words:
+        word_lengths_unique.append(len(word))
+        
+    unique_words_count = len(unique_words)
+    print(unique_words_count)
+    print(unique_words)
+    print(word_lengths_unique)
+    print(word_lengths_duplicates)
+    
+    for i in sorted(common_words, key=common_words.get, reverse=True):
+        print(i, common_words[i])
+    
+    # print(f'{common_words.keys()} : {common_words.values()}')
+    return
     
 #Creates and displays pie chart
 def create_pie_chart(labels, sizes, title):
@@ -99,6 +154,19 @@ def create_bar_graph(labels, sizes, title, x_label, y_label):
     plt.tight_layout()
     plt.show()
 
+#Creates and displays bar graph
+def create_histogram(data, bins, title, x_label, y_label):
+    plt.subplots(figsize=(8, 5))
+    
+    colors = "#CE882C"
+    plt.hist(data, bins=bins, color=colors, edgecolor='black', linewidth=0.8)
+    
+    plt.title(title, fontsize=16, fontweight='bold', pad=15)
+    plt.xlabel(x_label, fontsize=12)
+    plt.ylabel(y_label, fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
 
     
 def handle_choices(choice, state):
@@ -115,7 +183,7 @@ def handle_choices(choice, state):
             if state.get('current_file'):
                 clear_terminal()
                 statistics = get_basic_statistics(state['current_file'])
-                
+                #Print basic statistics in terminal
                 print(f'\nTotal Lines: {statistics['total_lines']}')
                 print(f'Total Words: {statistics['total_words']}')
                 print(f'Total Characters (with spaces): {statistics['total_characters']}')
@@ -125,12 +193,17 @@ def handle_choices(choice, state):
                 
                 labels = ['Lines', 'Words', 'Characters (w/ spaces)', 'Characters (no spaces)', 'Average words per line', 'Average characters per word']
                 sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces'], statistics['avg_words_per_line'], statistics['avg_characters_per_word']]
-                
-                create_bar_graph(labels, sizes, 'Basic Statistics', '', 'Count')
+                #Create bar graph of basic statistics
+                create_bar_graph(labels, sizes, 'Basic Statistics\n' + state['current_file'], '', '')
             else:
                 print('Please load a file first.')
         case '3':
-            print('todo')
+            if state.get('current_file'):
+                clear_terminal()
+                word_analysis(state['current_file'])
+            else:
+                print('Please load a file first.')
+                
         case '4':
             print('todo')
         case '5':
@@ -168,3 +241,17 @@ exit_boolean = False
 while not exit_boolean: #Program loop
     user_choice = print_menu()
     exit_boolean = handle_choices(user_choice, state)
+
+
+# Dictionaries for counting words
+# Lists for lengths
+# Sets for unique words
+
+# Basic statistics (number of lines, words, characters; average words per
+# line, characters per word)
+# ‣ Word analysis (top 10 words, word length distribution, unique words,
+# words only appearing once)
+# ‣ Sentence analysis (average words per sentence, longest and shortest,
+# sentence distribution)
+# ‣ Character analysis (letter frequency distribution, punctuation statistics,
+# case distribution)
