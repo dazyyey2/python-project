@@ -1,11 +1,14 @@
 import os
 import matplotlib.pyplot as plt
 
+#Clear terminal
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    
 #Lists available .txt files in the current directory
 #Allows users to type a filename
 #Handles file not found errors gracefully
 #Processes files line-by-line (never load entire file into memory)
-
 #Display files in current directory and get file based on user input
 def get_file():
     user_input = ''
@@ -82,30 +85,34 @@ def create_pie_chart(labels, sizes, title):
     plt.show()   
 
 #Creates and displays bar graph
-def create_bar_graph(x, y, title, x_label, y_label):
+def create_bar_graph(labels, sizes, title, x_label, y_label):
     plt.subplots(figsize=(8, 5))
     
     colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
-    plt.bar(x, y, color=colors, edgecolor='black', linewidth=0.8)
+    bars = plt.bar(labels, sizes, color=colors, edgecolor='black', linewidth=0.8)
+    for bar in bars:
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{bar.get_height():.0f}', ha='center', va='bottom', fontsize=10)
     plt.title(title, fontsize=16, fontweight='bold', pad=15)
     plt.xlabel(x_label, fontsize=12)
     plt.ylabel(y_label, fontsize=12)
+    plt.tight_layout()
     plt.show()
 
 
     
 def handle_choices(choice, state):
-
     match choice.lower():
         case '1':
+            clear_terminal()
             state['current_file'] = get_file()
             if state.get('current_file'):
-                print('File loaded sucessfully!')
-                #ReadFile(file)
+                print('\nFile loaded sucessfully!')
             else:
-                print('File selection was canceled.')
+                print('\nFile selection was canceled.')
         case '2':
+            #If a file has been loaded, fetch basic statistics; print it and show a bar graph
             if state.get('current_file'):
+                clear_terminal()
                 statistics = get_basic_statistics(state['current_file'])
                 
                 print(f'\nTotal Lines: {statistics['total_lines']}')
@@ -114,6 +121,11 @@ def handle_choices(choice, state):
                 print(f'Total Characters (without spaces): {statistics['total_characters_no_spaces']}')
                 print(f'Average Words per Line: {statistics['avg_words_per_line']}')
                 print(f'Average Characters per Word: {statistics['avg_characters_per_word']}\n')
+                
+                labels = ['Lines', 'Words', 'Chars (w/ spaces)', 'Chars (no spaces)']
+                sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces']]
+                
+                create_bar_graph(labels, sizes, 'Basic Statistics', '', 'Count')
             else:
                 print('Please load a file first.')
         case '3':
@@ -138,6 +150,7 @@ def print_menu():
 #Display character analysis (with visualisation)
 #Export results
 #Exit programme
+
     print('1. Load a text file')
     print('2. Display basic statistics (with visualisation)')
     print('3. Show word frequency analysis (with visualisation)')
