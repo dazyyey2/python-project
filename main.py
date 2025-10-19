@@ -91,8 +91,9 @@ def create_bar_graph(labels, sizes, title, x_label, y_label):
     colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
     bars = plt.bar(labels, sizes, color=colors, edgecolor='black', linewidth=0.8)
     for bar in bars:
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{bar.get_height():.0f}', ha='center', va='bottom', fontsize=10)
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{bar.get_height()}', ha='center', va='bottom', fontsize=10)
     plt.title(title, fontsize=16, fontweight='bold', pad=15)
+    plt.xticks(rotation=20, ha='right') #Rotate xlabel text 20 degrees to make sure the text doesn't overlap
     plt.xlabel(x_label, fontsize=12)
     plt.ylabel(y_label, fontsize=12)
     plt.tight_layout()
@@ -122,8 +123,8 @@ def handle_choices(choice, state):
                 print(f'Average Words per Line: {statistics['avg_words_per_line']}')
                 print(f'Average Characters per Word: {statistics['avg_characters_per_word']}\n')
                 
-                labels = ['Lines', 'Words', 'Chars (w/ spaces)', 'Chars (no spaces)']
-                sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces']]
+                labels = ['Lines', 'Words', 'Characters (w/ spaces)', 'Characters (no spaces)', 'Average words per line', 'Average characters per word']
+                sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces'], statistics['avg_words_per_line'], statistics['avg_characters_per_word']]
                 
                 create_bar_graph(labels, sizes, 'Basic Statistics', '', 'Count')
             else:
