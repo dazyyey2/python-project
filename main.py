@@ -38,38 +38,47 @@ def GetFile():
         except:
             print('Unspecified error opening file.')
     return
+
 #Read file line-by-line
 def ReadFile(file):
     line = file.readline() #Read first line of the file
-    
+    lineCounter = 0
+    charDictionary = {}
     while line != '':
         lineFiltered = line.strip() #Create separate variable without newline and blankspace
-        print(len(lineFiltered))
+        charDictionary[lineCounter] = len(lineFiltered)
+        lineCounter += 1
         line = file.readline()
-                
-        
     
-        
+    CreateBarGraph(charDictionary.keys(), charDictionary.values(), 'Bar graph', 'Line', 'Characters')
+
+def CreateBarGraph(x, y, title, xLabel, yLabel):
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
+
+    bars = ax.bar(x, y, color=colors, edgecolor='black', linewidth=0.8)
+
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=15)
+    ax.set_xlabel(xLabel, fontsize=12)
+    ax.set_ylabel(yLabel, fontsize=12)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.grid(axis='y', linestyle='--', alpha=0.6)
+
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, yval + 1, f'{yval}', ha='center', va='bottom', fontsize=10, fontweight='bold')
     
+    plt.tight_layout()
+    plt.show()
 
-def PrintMenu():
-#Load a text file
-#Display basic statistics (with visualisation)
-#Show word frequency analysis (with visualisation)
-#Display sentence analysis (with visualisation)
-#Display character analysis (with visualisation)
-#Export results
-#Exit programme
-    print('1. Load a text file')
-    print('2. Display basic statistics (with visualisation)')
-    print('3. Show word frequency analysis (with visualisation)')
-    print('4. Display sentence analysis (with visualisation)')
-    print('5. Display character analysis (with visualisation)')
-    print('6. Export results')
-    print('7. Exit programme')
 
-    userInput = input('Please enter choice: ')
-    match userInput:
+    
+def HandleChoices(choice):
+    match choice:
         case '1':
             file = GetFile()
             if file != None:
@@ -90,10 +99,29 @@ def PrintMenu():
             print('todo')
         case '6':
             print('todo')
-        case '7':
-            return True #Exit program loop
+        case 'x':
+            return True
         case _:
             print('Please enter a valid choice.')
+    
+def PrintMenu():
+#Load a text file
+#Display basic statistics (with visualisation)
+#Show word frequency analysis (with visualisation)
+#Display sentence analysis (with visualisation)
+#Display character analysis (with visualisation)
+#Export results
+#Exit programme
+    print('1. Load a text file')
+    print('2. Display basic statistics (with visualisation)')
+    print('3. Show word frequency analysis (with visualisation)')
+    print('4. Display sentence analysis (with visualisation)')
+    print('5. Display character analysis (with visualisation)')
+    print('6. Export results')
+    print('x. Exit programme')
+
+    userInput = input('Please enter choice: ')
+    return HandleChoices(userInput) #Returns true if user wants to exit program loop
 
 exitBoolean = False
 while not exitBoolean: #Program loop
