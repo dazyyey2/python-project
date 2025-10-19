@@ -7,68 +7,41 @@ import matplotlib.pyplot as plt
 #Processes files line-by-line (never load entire file into memory)
 
 #Display files in current directory and get file based on user input
-def GetFile():
-    userInput = ''
-    while(userInput.lower() != 'x'):
+def get_file():
+    user_input = ''
+    while(user_input.lower() != 'x'):
         cwd = os.getcwd()
-        filePath = ''
+        file_path = ''
         files = os.listdir(cwd)
-        txtFiles = []
+        txt_files = []
         
         #Print .txt files and filesize from current directory
         print('Files in current directory (.txt): ')
         for i in range(0, len(files), 1):
             if files[i].endswith('.txt'):
-                txtFiles.append(files[i])
-        if len(txtFiles) != 0:
-            for i in range(0, len(txtFiles), 1):
-                print(f'{txtFiles[i]} : {os.path.getsize(txtFiles[i])} bytes')
+                txt_files.append(files[i])
+        if len(txt_files) != 0:
+            for i in range(0, len(txt_files), 1):
+                print(f'{txt_files[i]} : {os.path.getsize(txt_files[i])} bytes')
         else:
             print(f'No .txt files found in current directory ({cwd})')    
         
-        userInput = input('\nInput the name of the .txt file (Write \'x\' to cancel): ') #Get filename from user input
-        filePath = cwd + '/' + userInput
-        if os.path.exists(filePath):
-            return filePath
-        if os.path.exists(filePath + '.txt'):
-            return filePath + '.txt'
-        elif userInput.lower() != 'x':
+        user_input = input('\nInput the name of the .txt file (Write \'x\' to cancel): ') #Get filename from user input
+        file_path = cwd + '/' + user_input
+        if os.path.exists(file_path):
+            return file_path
+        if os.path.exists(file_path + '.txt'):
+            return file_path + '.txt'
+        elif user_input.lower() != 'x':
             print('Please enter a valid filename from the current directory') #Ask user for valid filename after file is not found
     return None #Return None if selection was cancelled
         
-        # ------ OLD ---------
-        # userInput = input('\nInput the name of the .txt file (Write \'x\' to cancel): ') #Get filename from user input
-        # try:
-        #     fullFile = open(cwd + '/' + userInput , 'r', encoding='utf-8') #Open selected file
-        #     return fullFile
-        # except FileNotFoundError:
-        #     try:
-        #         fullFile = open(cwd + '/' + userInput + '.txt', 'r', encoding='utf-8') #Test user input with .txt extension if file was not found
-        #         return fullFile
-        #     except FileNotFoundError:
-        #         print('Please enter a valid filename from the current directory') #Ask user for valid filename after file is not found
-        # except:
-        #     print('Unspecified error opening file.')
-
-#Read file line-by-line
-# def ReadFile(file):
-#     line = file.readline() #Read first line of the file
-#     lineCounter = 0
-#     charDictionary = {}
-#     while line != '':
-#         lineFiltered = line.strip() #Create separate variable without newline and blankspace
-#         charDictionary[lineCounter] = len(lineFiltered)
-#         lineCounter += 1
-#         line = file.readline()
-    
-#     CreateBarGraph(charDictionary.keys(), charDictionary.values(), 'Bar graph', 'Line', 'Characters')
-
 # Total number of lines
 # Total number of words
 # Total number of characters (with and without spaces)
 # Average words per line
 # Average characters per word
-def GetBasicStatistics(file):
+def get_basic_statistics(file):
     lineCounter = 0
     charDictionary = {}
     
@@ -79,14 +52,14 @@ def GetBasicStatistics(file):
             charDictionary[lineCounter] = len(lineFiltered)
             lineCounter += 1
             line = file.readline()
-    CreateBarGraph(charDictionary.keys(), charDictionary.values(), 'Bar graph', 'Line', 'Characters')
+    create_bar_graph(charDictionary.keys(), charDictionary.values(), 'Bar graph', 'Line', 'Characters')
     totalLines = lineCounter
     
 
 
 
 #Creates and displays bar graph
-def CreateBarGraph(x, y, title, xLabel, yLabel):
+def create_bar_graph(x, y, title, x_label, y_label):
 
     fig, ax = plt.subplots(figsize=(8, 5)) #Create figure and axis
 
@@ -95,31 +68,30 @@ def CreateBarGraph(x, y, title, xLabel, yLabel):
     bars = ax.bar(x, y, color=colors, edgecolor='black', linewidth=0.8) #Create bars
 
     ax.set_title(title, fontsize=16, fontweight='bold', pad=15)#Title
-    ax.set_xlabel(xLabel, fontsize=12)#x label
-    ax.set_ylabel(yLabel, fontsize=12)#y label
+    ax.set_xlabel(x_label, fontsize=12)#x label
+    ax.set_ylabel(y_label, fontsize=12)#y label
 
     for bar in bars:
         yval = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2 ,yval + .5, f'{yval}',ha='center', va='bottom', fontsize=10, fontweight='bold') #Create text label with y-value over bar
     
-    plt.tight_layout()
     plt.show()
 
 
     
-def HandleChoices(choice, state):
+def handle_choices(choice, state):
 
     match choice:
         case '1':
-            state['currentFile'] = GetFile()
-            if state['currentFile'] != None:
+            state['current_file'] = get_file()
+            if state['current_file'] != None:
                 print('File loaded sucessfully!')
                 #ReadFile(file)
             else:
                 print('File selection was canceled.')
         case '2':
-            if state.get('currentFile'):
-                GetBasicStatistics(state['currentFile'])
+            if state.get('current_file'):
+                get_basic_statistics(state['current_file'])
             else:
                 print('Please load a file first.')
         case '3':
@@ -136,7 +108,7 @@ def HandleChoices(choice, state):
             print('Please enter a valid choice.')
     return False #Continue program loop
     
-def PrintMenu():
+def print_menu():
 #Load a text file
 #Display basic statistics (with visualisation)
 #Show word frequency analysis (with visualisation)
@@ -152,11 +124,11 @@ def PrintMenu():
     print('6. Export results')
     print('x. Exit programme')
 
-    userInput = input('Please enter choice: ')
-    return userInput #Returns user choice
+    user_input = input('Please enter choice: ')
+    return user_input #Returns user choice
 
 state = {}
-exitBoolean = False
-while not exitBoolean: #Program loop
-    userChoice = PrintMenu()
-    exitBoolean = HandleChoices(userChoice, state)
+exit_boolean = False
+while not exit_boolean: #Program loop
+    user_choice = print_menu()
+    exit_boolean = handle_choices(user_choice, state)
