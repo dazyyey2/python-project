@@ -28,12 +28,13 @@ def get_file():
         
         user_input = input('\nInput the name of the .txt file (Write \'x\' to cancel): ') #Get filename from user input
         file_path = cwd + '/' + user_input
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and user_input != '':
             return file_path
         if os.path.exists(file_path + '.txt'):
             return file_path + '.txt'
         elif user_input.lower() != 'x':
             print('Please enter a valid filename from the current directory') #Ask user for valid filename after file is not found
+        
     return None #Return None if selection was cancelled
         
 # Total number of lines
@@ -42,56 +43,77 @@ def get_file():
 # Average words per line
 # Average characters per word
 def get_basic_statistics(file):
-    lineCounter = 0
-    charDictionary = {}
-    
-    with open(file, 'r', encoding='utf-8') as file:
-        line = file.readline() #Read first line of the file
+    line_counter = 0
+    statistics = {}
+    statistics['total_words'] = 0
+    statistics['total_lines'] = 0
+    statistics['total_characters'] = 0
+    statistics['total_characters_no_spaces'] = 0
+    statistics['avg_words_per_line'] = 0
+    statistics['avg_characters_per_word'] = 0
+    #Go through file line-by-line and save basic statistics in dictionary
+    with open(file, 'r', encoding='utf-8') as file_stream:
+        line = file_stream.readline() #Read first line of the file
         while line != '':
-            lineFiltered = line.strip() #Create separate variable without newline and blankspace
-            charDictionary[lineCounter] = len(lineFiltered)
-            lineCounter += 1
-            line = file.readline()
-    create_bar_graph(charDictionary.keys(), charDictionary.values(), 'Bar graph', 'Line', 'Characters')
-    totalLines = lineCounter
+            line_filtered = line.strip() #Create separate variable without newline and blankspace
+            line_counter += 1
+            
+            statistics['total_words'] += len(line.split())
+            statistics['total_characters'] += len(line)
+            line_filtered = line_filtered.replace(' ', '')
+            statistics['total_characters_no_spaces'] += len(line_filtered)
+
+            line = file_stream.readline()
+            
+    statistics['total_lines'] = line_counter
+    statistics['avg_words_per_line'] = round(statistics['total_words']/statistics['total_lines'], 3)
+    statistics['avg_characters_per_word'] = round(statistics['total_characters_no_spaces']/statistics['total_words'], 3)
     
-
-
+    return statistics
+    
+#Creates and displays pie chart
+def create_pie_chart(labels, sizes, title):
+    plt.subplots(figsize=(8, 5))
+    
+    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
+    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'black', 'linewidth': 0.8})
+    plt.title(title, fontsize=16, fontweight='bold', pad=15)
+    plt.axis('equal')
+    plt.show()   
 
 #Creates and displays bar graph
 def create_bar_graph(x, y, title, x_label, y_label):
-
-    fig, ax = plt.subplots(figsize=(8, 5)) #Create figure and axis
-
-    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974'] #Define colors for bars
-
-    bars = ax.bar(x, y, color=colors, edgecolor='black', linewidth=0.8) #Create bars
-
-    ax.set_title(title, fontsize=16, fontweight='bold', pad=15)#Title
-    ax.set_xlabel(x_label, fontsize=12)#x label
-    ax.set_ylabel(y_label, fontsize=12)#y label
-
-    for bar in bars:
-        yval = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2 ,yval + .5, f'{yval}',ha='center', va='bottom', fontsize=10, fontweight='bold') #Create text label with y-value over bar
+    plt.subplots(figsize=(8, 5))
     
+    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
+    plt.bar(x, y, color=colors, edgecolor='black', linewidth=0.8)
+    plt.title(title, fontsize=16, fontweight='bold', pad=15)
+    plt.xlabel(x_label, fontsize=12)
+    plt.ylabel(y_label, fontsize=12)
     plt.show()
 
 
     
 def handle_choices(choice, state):
 
-    match choice:
+    match choice.lower():
         case '1':
             state['current_file'] = get_file()
-            if state['current_file'] != None:
+            if state.get('current_file'):
                 print('File loaded sucessfully!')
                 #ReadFile(file)
             else:
                 print('File selection was canceled.')
         case '2':
             if state.get('current_file'):
-                get_basic_statistics(state['current_file'])
+                statistics = get_basic_statistics(state['current_file'])
+                
+                print(f'\nTotal Lines: {statistics['total_lines']}')
+                print(f'Total Words: {statistics['total_words']}')
+                print(f'Total Characters (with spaces): {statistics['total_characters']}')
+                print(f'Total Characters (without spaces): {statistics['total_characters_no_spaces']}')
+                print(f'Average Words per Line: {statistics['avg_words_per_line']}')
+                print(f'Average Characters per Word: {statistics['avg_characters_per_word']}\n')
             else:
                 print('Please load a file first.')
         case '3':
