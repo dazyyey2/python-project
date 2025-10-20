@@ -94,7 +94,7 @@ def word_analysis(file):
         with open(file, 'r', encoding='utf-8') as file_stream:
             line = file_stream.readline() #Read first line of the file
             while line != '':
-                line = line.strip().lower() #Create separate variable without newline and blankspace
+                line = line.strip().lower() #Remove newlines/blankspaces and make it lowercase
                 clean_text = ''
                 
                 #Clean text by only including words (no digits etc)
@@ -143,6 +143,83 @@ def word_analysis(file):
     statistics['word_lengths_duplicates'] = word_lengths_duplicates
 
     return statistics, top_10_words, unique_words
+#Sentence analysis (average words per sentence, longest and shortest, sentence distribution)
+# Average words per sentence
+# • Longest and shortest sentences
+# • Sentence length distribution
+def sentence_analysis(file):
+    current_sentence = ''
+    sentences = []
+    sentence_stoppers = ['.','?','!']
+    avg_words_per_sentence = 0
+    
+    try:
+        with open(file, 'r', encoding='utf-8') as file_stream:
+            line = file_stream.readline() #Read first line of the file
+            while line != '':
+                line = line.strip() #Remove newlines/blankspaces
+                
+                #Split line into sentences
+                for char in line:
+                    current_sentence += char
+                    if char in sentence_stoppers:
+                        sentence = current_sentence.strip()
+                        if sentence != '' and sentence not in sentence_stoppers:
+                            sentences.append(sentence)
+                        current_sentence = '' 
+                line = file_stream.readline()
+    except:
+        print('Unknown error reading file.')
+    
+    total_words = get_basic_statistics(state['current_file'])['total_words'] #Not efficient
+    if len(sentences) != 0:
+        avg_words_per_sentence = total_words/len(sentences)
+    else:
+        print('No sentences found in file.')
+    
+    #Count characters per sentence
+    sentence_char_length = []
+    for i in sentences:
+        sentence_char_length.append(len(i)-1)
+    #Put the sentence and wordcount into tuple
+    sentence_lengths = []
+    for sentence in sentences:
+        sentence_lengths.append((len(sentence.split()), sentence.split()))
+        
+    #Find shortest and longest sentence
+    shortest_sentence = []
+    longest_sentence = []
+    min_sentence_length = 0
+    max_sentence_length = 0
+    for length, words in sentence_lengths:
+        if min_sentence_length == 0 or length < min_sentence_length:
+            min_sentence_length = length
+            shortest_sentence = words
+        if max_sentence_length == 0 or length > max_sentence_length:
+            max_sentence_length = length
+            longest_sentence = words
+    #Get only the length of sentences
+    only_lengths = []
+    for lengths, words in sentence_lengths:
+        only_lengths.append(lengths)
+    #Convert longest and shortest senteces to strings
+    longest_sentence_str = ''
+    for word in longest_sentence:
+          longest_sentence_str += word + ' '
+    shortest_sentence_str = ''
+    for word in shortest_sentence:
+        shortest_sentence_str += word + ' '
+    #Package data  
+    statistics = {}
+    statistics['sentence_lengths'] = sentence_lengths
+    statistics['only_lengths'] = only_lengths
+    statistics['shortest_sentence'] = shortest_sentence
+    statistics['shortest_sentence_str'] = shortest_sentence_str
+    statistics['longest_sentence'] = longest_sentence
+    statistics['longest_sentence_str'] = longest_sentence_str
+    statistics['avg_words_per_sentence'] = avg_words_per_sentence
+
+    return statistics
 #Creates and displays pie chart
 def create_pie_chart(labels, sizes, title=''):
     plt.subplots(figsize=(8, 5))
@@ -219,14 +296,7 @@ def handle_choices(choice, state):
             if state.get('current_file'):
                 clear_terminal()
                 statistics = get_basic_statistics(state['current_file'])
-                #Print basic statistics in terminal
-                print(f'\nTotal Lines: {statistics['total_lines']}')
-                print(f'Total Words: {statistics['total_words']}')
-                print(f'Total Characters (with spaces): {statistics['total_characters']}')
-                print(f'Total Characters (without spaces): {statistics['total_characters_no_spaces']}')
-                print(f'Average Words per Line: {statistics['avg_words_per_line']}')
-                print(f'Average Characters per Word: {statistics['avg_characters_per_word']}\n')
-                
+
                 #Create bar graph of basic statistics
                 labels = ['Lines', 'Words', 'Characters (w/ spaces)', 'Characters (no spaces)']
                 sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces']]
@@ -239,16 +309,28 @@ def handle_choices(choice, state):
         case '3':
             if state.get('current_file'):
                 clear_terminal()
-                statistics_dictionary, top_10_words, unique_words = word_analysis(state['current_file'])
+                statistics, top_10_words, unique_words = word_analysis(state['current_file'])
                 
                 create_bar_graph(top_10_words.keys(), top_10_words.values(), 'Top 10 words\n' + state['current_file'], 
-                                 textbox_text=f'{statistics_dictionary['unique_words_count']} Unique words\n{statistics_dictionary['words_only_once_count']} Words only appear once')
-                create_histogram(statistics_dictionary['word_lengths_unique'], bins=10, title='Word length distribution\n' + state['current_file'])
+                                 textbox_text=f'{statistics['unique_words_count']} unique words\n{statistics['words_only_once_count']} words only appear once')
+                create_histogram(statistics['word_lengths_unique'], bins=10, title='Word length distribution\n' + state['current_file'])
             else:
                 print('Please load a file first.')
         #SENTENCE ANALYSIS 
         case '4':
-            print('todo')
+            if state.get('current_file'):
+                clear_terminal()
+                statistics = sentence_analysis(state['current_file'])
+                
+                print(f'Longest sentence: {statistics['longest_sentence_str']}\n')
+                print(f'Shortest sentence: {statistics['shortest_sentence_str']}\n')
+                
+                create_histogram(statistics['only_lengths'], bins=10, title='Sentence length distribution\n' + state['current_file'], 
+                                 textbox_text=f'Average words per sentence: {round(statistics['avg_words_per_sentence'],3)}\n' + 
+                                 f'Longest sentence: {len(statistics['longest_sentence'])} (Printed in terminal)\n' + 
+                                 f'Shortest sentence: {len(statistics['shortest_sentence'])} (Printed in terminal)')
+            else:
+                print('Please load a file first.')
         #CHARACTER ANALYSIS
         case '5':
             print('todo')
