@@ -87,13 +87,14 @@ def word_analysis(file):
     word_lengths_duplicates = []
     unique_words_count = 0
     common_words = {}
+    
     with open(file, 'r', encoding='utf-8') as file_stream:
         line = file_stream.readline() #Read first line of the file
         while line != '':
             line = line.strip().lower() #Create separate variable without newline and blankspace
             clean_text = ''
             #Clean text by only including words (no digits etc)
-            for word in line.split():
+            for word in line:
                 for char in word:
                     if char.isalpha() or char.isspace():
                         clean_text += char
@@ -104,11 +105,11 @@ def word_analysis(file):
             
             for word in line_filtered:
                 unique_words.add(word)
-                word_lengths_duplicates.append(word)
-                
+                word_lengths_duplicates.append(len(word))
                 #Count how many times each word duplicates and save it in common_words
                 if word in common_words:
                     common_words[word] += 1
+
                 else:
                     common_words[word] = 1
 
@@ -116,17 +117,25 @@ def word_analysis(file):
             
     for word in unique_words:
         word_lengths_unique.append(len(word))
-        
-    unique_words_count = len(unique_words)
-    print(unique_words_count)
-    print(unique_words)
-    print(word_lengths_unique)
-    print(word_lengths_duplicates)
     
+    top_10_words = {}    
+    counter = 0
     for i in sorted(common_words, key=common_words.get, reverse=True):
-        print(i, common_words[i])
-    
-    # print(f'{common_words.keys()} : {common_words.values()}')
+        if counter < 10:
+            top_10_words[i] = common_words[i]
+        else:
+            break
+        counter += 1
+
+    create_bar_graph(top_10_words.keys(), top_10_words.values(), 'Top 10 words', '', '')
+    create_histogram(word_lengths_unique, bins=10, title='Word lengths', x_label='', y_label='')
+        
+    # unique_words_count = len(unique_words)
+    # print(unique_words_count)
+    # print(unique_words)
+    # print(word_lengths_unique)
+    # print(word_lengths_duplicates)
+
     return
     
 #Creates and displays pie chart
@@ -158,9 +167,14 @@ def create_bar_graph(labels, sizes, title, x_label, y_label):
 def create_histogram(data, bins, title, x_label, y_label):
     plt.subplots(figsize=(8, 5))
     
-    colors = "#CE882C"
-    plt.hist(data, bins=bins, color=colors, edgecolor='black', linewidth=0.8)
-    
+    color = "#CE882C"
+    n, bins_edges, patches = plt.hist(data, bins=bins, color=color, edgecolor='black', linewidth=0.8)
+
+    for i in range(0, len(patches), 1):
+        height = n[i]
+        x_pos = patches[i].get_x() + patches[i].get_width() / 2
+        plt.text(x_pos, height, f'{int(height)}', ha='center', va='bottom', fontsize=10)
+        
     plt.title(title, fontsize=16, fontweight='bold', pad=15)
     plt.xlabel(x_label, fontsize=12)
     plt.ylabel(y_label, fontsize=12)
