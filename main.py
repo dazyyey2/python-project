@@ -68,8 +68,8 @@ def get_basic_statistics(file):
                 statistics['total_characters_no_spaces'] += len(line_filtered)
 
                 line = file_stream.readline()
-    except:
-        print('Unknown error reading file.')
+    except Exception as e:
+        print(f'Unknown error reading file: {e}')
     
     if line_counter != 0:
         statistics['total_lines'] = line_counter
@@ -117,8 +117,8 @@ def word_analysis(file):
                         common_words[word.capitalize()] = 1
 
                 line = file_stream.readline()
-    except:
-        print('Unknown error reading file.')
+    except Exception as e:
+        print(f'Unknown error reading file: {e}')
             
     for word in unique_words:
         word_lengths_unique.append(len(word))
@@ -147,6 +147,7 @@ def word_analysis(file):
 # Average words per sentence
 # • Longest and shortest sentences
 # • Sentence length distribution
+# Histogram of sentence lengths + bar chart of common lengths
 def sentence_analysis(file):
     current_sentence = ''
     sentences = []
@@ -164,14 +165,16 @@ def sentence_analysis(file):
                     current_sentence += char
                     if char in sentence_stoppers:
                         sentence = current_sentence.strip()
-                        if sentence != '' and sentence not in sentence_stoppers:
-                            sentences.append(sentence)
-                        current_sentence = '' 
+                        if len(sentence.split()) >= 2: #If there are more than 2 words in the sentence add it, otherwise skip
+                            if sentence != '' and sentence not in sentence_stoppers:
+                                sentences.append(sentence)
+                        current_sentence = ''
+                        
                 line = file_stream.readline()
-    except:
-        print('Unknown error reading file.')
+    except Exception as e:
+        print(f'Unknown error reading file: {e}')
     
-    total_words = get_basic_statistics(state['current_file'])['total_words'] #Not efficient
+    total_words = get_basic_statistics(file)['total_words'] #Not efficient
     if len(sentences) != 0:
         avg_words_per_sentence = total_words/len(sentences)
     else:
@@ -202,6 +205,19 @@ def sentence_analysis(file):
     only_lengths = []
     for lengths, words in sentence_lengths:
         only_lengths.append(lengths)
+    #10 most common lengths
+    top_10_sentences = {}
+    lengths_counted = {}
+    for length in only_lengths:
+        if length in lengths_counted:
+            lengths_counted[length] += 1
+        else:
+            lengths_counted[length] = 1
+    counter = 0
+    for length in sorted(lengths_counted, key=lengths_counted.get, reverse=True):
+        if counter < 10:
+            top_10_sentences[length] = lengths_counted[length]
+        counter += 1
     #Convert longest and shortest senteces to strings
     longest_sentence_str = ''
     for word in longest_sentence:
@@ -211,6 +227,7 @@ def sentence_analysis(file):
         shortest_sentence_str += word + ' '
     #Package data  
     statistics = {}
+    statistics['top_10_sentences'] = top_10_sentences
     statistics['sentence_lengths'] = sentence_lengths
     statistics['only_lengths'] = only_lengths
     statistics['shortest_sentence'] = shortest_sentence
@@ -220,21 +237,90 @@ def sentence_analysis(file):
     statistics['avg_words_per_sentence'] = avg_words_per_sentence
 
     return statistics
+# Character Analysis:
+# • Letter frequency distribution
+# • Punctuation statistics
+# • Case distribution (uppercase vs lowercase)
+# Bar chart of most common letters + pie chart of character types
+def character_analysis(file):
+    letter_counts = {}
+    punctuation_counts = {}
+    sentence_stoppers = ['.','?','!']
+    total_upper = 0
+    total_lower = 0
+    total_digits = 0
+    total_spaces = 0
+    total_chars = 0
+    try:
+        with open(file, 'r', encoding='utf-8') as file_stream:
+            for line in file_stream:
+                for char in line:
+                    total_chars += 1
+                    if char.isalpha():
+                        if letter_counts.get(char.lower()):
+                            letter_counts[char.lower()] += 1
+                        else:
+                            letter_counts[char.lower()] = 1
+                        if char.isupper():
+                            total_upper += 1
+                        else:
+                            total_lower += 1
+                    elif char.isdigit():
+                        total_digits += 1
+                    elif char.isspace():
+                        total_spaces += 1
+                    elif char in sentence_stoppers:
+                        if punctuation_counts.get(char):
+                            punctuation_counts[char] += 1
+                        else:
+                            punctuation_counts[char] = 1
+    except Exception as e:
+        print(f'Unknown error reading file: {e}')
+        
+    #Extract most common letters
+    sorted_letters = {}
+    counter = 0
+    for letter in sorted(letter_counts, key=letter_counts.get, reverse=True):
+        if counter < 12:
+            sorted_letters[letter] = letter_counts[letter]
+        counter += 1
+
+    total_letters = sum(letter_counts.values())
+    total_punct = sum(punctuation_counts.values())
+    other_chars = total_chars - (total_letters + total_punct + total_digits + total_spaces) #Any other chars (like %&¤ etc) 
+
+    #Package data
+    statistics = {}
+    statistics['total_letters'] = total_letters
+    statistics['letter_counts'] = letter_counts
+    statistics['punctuation_counts'] = punctuation_counts
+    statistics['total_upper'] = total_upper
+    statistics['total_lower'] = total_lower
+    statistics['total_digits'] = total_digits
+    statistics['total_spaces'] = total_spaces
+    statistics['total_chars'] = total_chars
+    statistics['total_punctuations'] = total_punct
+    statistics['other_chars'] = other_chars
+    
+    return statistics, sorted_letters
 #Creates and displays pie chart
 def create_pie_chart(labels, sizes, title=''):
-    plt.subplots(figsize=(8, 5))
+    plt.subplots(figsize=(10, 6))
     
-    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
+    colors = ['#4D6DA1', '#55A868', '#C44E52', '#8172B2', '#CCB974']
     
-    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'black', 'linewidth': 0.8})
+    wedges, texts, autotexts = plt.pie(sizes, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'black', 'linewidth': 0.8}, pctdistance=1.12)
+    
+    plt.legend(wedges, labels, title='Categories', loc='center left')
+    
     plt.title(title, fontsize=16, fontweight='bold', pad=15)
     plt.axis('equal')
     plt.show()   
 #Creates and displays bar graph
-def create_bar_graph(labels, sizes, title='', x_label='', y_label='', textbox_text='', textbox_left=False):
-    fig, ax = plt.subplots(figsize=(8, 5))
+def create_bar_graph(labels, sizes, title='', x_label='', y_label='', textbox_text='', textbox_left=False, text_rotation=True):
+    fig, ax = plt.subplots(figsize=(10, 6))
     
-    colors = ["#4D6DA1", '#55A868', '#C44E52', '#8172B2', '#CCB974']
+    colors = ['#4D6DA1', '#55A868', '#C44E52', '#8172B2', '#CCB974']
     
     bars = plt.bar(labels, sizes, color=colors, edgecolor='black', linewidth=0.8)
     for bar in bars:
@@ -246,18 +332,21 @@ def create_bar_graph(labels, sizes, title='', x_label='', y_label='', textbox_te
     else:
         ax.text(0.95, 0.95, textbox_text, transform=ax.transAxes, fontsize=14, verticalalignment='top', horizontalalignment='right', bbox=props)
     
+    if text_rotation:
+        plt.xticks(rotation=20, ha='right') #Rotate xlabel text 20 degrees to make sure the text doesn't overlap
+
     ax.grid(True, linestyle='--', alpha=0.6)  
     plt.title(title, fontsize=16, fontweight='bold', pad=15)
-    plt.xticks(rotation=20, ha='right') #Rotate xlabel text 20 degrees to make sure the text doesn't overlap
     plt.xlabel(x_label, fontsize=12)
     plt.ylabel(y_label, fontsize=12)
     plt.tight_layout()
     plt.show()
 #Creates and displays bar graph
 def create_histogram(data, bins, title='', x_label='', y_label='', textbox_text='', textbox_left=False):
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(10, 6))
+
     
-    color = "#CE882C"
+    color = '#CE882C'
     n, bins_edges, patches = plt.hist(data, bins=bins, color=color, edgecolor='black', linewidth=0.8)
 
     for i in range(0, len(patches), 1):
@@ -311,7 +400,7 @@ def handle_choices(choice, state):
                 clear_terminal()
                 statistics, top_10_words, unique_words = word_analysis(state['current_file'])
                 
-                create_bar_graph(top_10_words.keys(), top_10_words.values(), 'Top 10 words\n' + state['current_file'], 
+                create_bar_graph(top_10_words.keys(), top_10_words.values(), 'Top 10 Words\n' + state['current_file'], 
                                  textbox_text=f'{statistics['unique_words_count']} unique words\n{statistics['words_only_once_count']} words only appear once')
                 create_histogram(statistics['word_lengths_unique'], bins=10, title='Word length distribution\n' + state['current_file'])
             else:
@@ -325,15 +414,32 @@ def handle_choices(choice, state):
                 print(f'Longest sentence: {statistics['longest_sentence_str']}\n')
                 print(f'Shortest sentence: {statistics['shortest_sentence_str']}\n')
                 
+                keys_as_strings = []
+                for i in statistics['top_10_sentences'].keys():
+                    keys_as_strings.append(str(i))
+                
                 create_histogram(statistics['only_lengths'], bins=10, title='Sentence length distribution\n' + state['current_file'], 
                                  textbox_text=f'Average words per sentence: {round(statistics['avg_words_per_sentence'],3)}\n' + 
                                  f'Longest sentence: {len(statistics['longest_sentence'])} (Printed in terminal)\n' + 
                                  f'Shortest sentence: {len(statistics['shortest_sentence'])} (Printed in terminal)')
+                create_bar_graph(keys_as_strings, statistics['top_10_sentences'].values(), title='Top 10 Lengths of Sentences\n' + state['current_file'], 
+                                 x_label='Sentence Length', y_label='Amount', text_rotation=False)
             else:
                 print('Please load a file first.')
         #CHARACTER ANALYSIS
         case '5':
-            print('todo')
+            if state.get('current_file'):
+                clear_terminal()
+                statistics, sorted_letters = character_analysis(state['current_file'])
+                
+                create_bar_graph(sorted_letters.keys(), sorted_letters.values(), title=f'Top 12 Letters\n{state['current_file']}', x_label='Letters', y_label='Amount',
+                textbox_text=f'Total letters: {statistics['total_letters']}\nUppercase: {statistics['total_upper']}\nLowercase: {statistics['total_lower']}', text_rotation=False)
+                
+                labels = ['Letters', 'Punctuation', 'Digits', 'Spaces', 'Other']
+                sizes = [statistics['total_letters'], statistics['total_punctuations'], statistics['total_digits'], statistics['total_spaces'], statistics['other_chars']]
+                create_pie_chart(labels, sizes, title=f'Character Type Distribution\n{state['current_file']}')
+            else:
+                print('Please load a file first.')
         #EXPORT
         case '6':
             print('todo')
