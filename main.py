@@ -303,6 +303,44 @@ def character_analysis(file):
     statistics['other_chars'] = other_chars
     
     return statistics, sorted_letters
+def export_statistics(file_to_analyse):
+    cwd = os.getcwd()
+    file_name = 'export.json'
+    
+    basic_statistics = get_basic_statistics(file_to_analyse)
+    word_analysis_statistics, top_words, unique_words = word_analysis(file_to_analyse)
+    sentence_analysis_statistics = sentence_analysis(file_to_analyse)
+    character_analysis_statistics, sorted_letters = character_analysis(file_to_analyse)
+    
+    if os.path.exists(cwd + '/' + file_name):
+        return
+    
+    with open('export.json', 'w', encoding='utf-8') as file_stream:
+        file_stream.write('===== Basic Statistics =====\n')
+        for key in basic_statistics.keys():
+            file_stream.write(f'{key} : {basic_statistics[key]}\n')
+            
+        file_stream.write('\n===== Word Analysis =====\n')
+        for key in word_analysis_statistics.keys():
+            file_stream.write(f'{key} : {word_analysis_statistics[key]}\n')
+        file_stream.write('----- Top 10 words -----\n')
+        for key in top_words.keys():
+            file_stream.write(f'{key} appears {top_words[key]} times\n')
+        file_stream.write('----- List of unique words -----\n')
+        for word in unique_words:
+            file_stream.write(f'{word}, ')
+
+        file_stream.write('\n\n===== Sentence Analysis =====\n')
+        for key in sentence_analysis_statistics.keys():
+            file_stream.write(f'{key} : {sentence_analysis_statistics[key]}\n')
+            
+        file_stream.write('\n===== Character Analysis =====\n')
+        for key in character_analysis_statistics.keys():
+            file_stream.write(f'{key} : {character_analysis_statistics[key]}\n')
+        file_stream.write('----- Top 12 Letters -----\n')
+        for letter in sorted_letters.keys():
+            file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
+    return
 #Creates and displays pie chart
 def create_pie_chart(labels, sizes, title=''):
     plt.subplots(figsize=(10, 6))
@@ -442,7 +480,11 @@ def handle_choices(choice, state):
                 print('Please load a file first.')
         #EXPORT
         case '6':
-            print('todo')
+            if state.get('current_file'):
+                clear_terminal()
+                export_statistics(state['current_file'])
+            else:
+                print('Please load a file first.')
         case 'x':
             return True #Exit program loop
         case _:
