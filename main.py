@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+import json
 
 #Clear terminal
 def clear_terminal():
@@ -16,7 +17,7 @@ def get_file():
         file_path = ''
         files = os.listdir(cwd)
         txt_files = []
-        
+
         #Print .txt files and filesize from current directory
         print('Files in current directory (.txt): ')
         for i in range(0, len(files), 1):
@@ -227,7 +228,7 @@ def sentence_analysis(file):
         shortest_sentence_str += word + ' '
     #Package data  
     statistics = {}
-    statistics['top_10_sentences'] = top_10_sentences
+    statistics['top_10_sentence_lengths'] = top_10_sentences
     statistics['sentence_lengths'] = sentence_lengths
     statistics['only_lengths'] = only_lengths
     statistics['shortest_sentence'] = shortest_sentence
@@ -303,43 +304,95 @@ def character_analysis(file):
     statistics['other_chars'] = other_chars
     
     return statistics, sorted_letters
-def export_statistics(file_to_analyse):
+def export_statistics(file_to_analyse, comprehensive=False, json=False):
     cwd = os.getcwd()
-    file_name = 'export.json'
+    file_name = ''
+    
+    print('Exporting...')
     
     basic_statistics = get_basic_statistics(file_to_analyse)
     word_analysis_statistics, top_words, unique_words = word_analysis(file_to_analyse)
     sentence_analysis_statistics = sentence_analysis(file_to_analyse)
     character_analysis_statistics, sorted_letters = character_analysis(file_to_analyse)
     
+    if comprehensive:
+        file_name = 'comprehensive_export'
+    else:
+        file_name = 'normal_export'
+    
+    if json:
+        file_name += '.json'
+    else:
+        file_name += '.txt'
+    
     if os.path.exists(cwd + '/' + file_name):
+        print(f'Prevented overwriting. {file_name} already exists, please rename or remove it.')
         return
     
-    with open('export.json', 'w', encoding='utf-8') as file_stream:
-        file_stream.write('===== Basic Statistics =====\n')
-        for key in basic_statistics.keys():
-            file_stream.write(f'{key} : {basic_statistics[key]}\n')
-            
-        file_stream.write('\n===== Word Analysis =====\n')
-        for key in word_analysis_statistics.keys():
-            file_stream.write(f'{key} : {word_analysis_statistics[key]}\n')
-        file_stream.write('----- Top 10 words -----\n')
-        for key in top_words.keys():
-            file_stream.write(f'{key} appears {top_words[key]} times\n')
-        file_stream.write('----- List of unique words -----\n')
-        for word in unique_words:
-            file_stream.write(f'{word}, ')
+    if comprehensive:
+        if not json:
+            try:
+                with open(file_name, 'w', encoding='utf-8') as file_stream:
+                    file_stream.write('===== Basic Statistics =====\n')
+                    for key in basic_statistics.keys():
+                        file_stream.write(f'{key} : {basic_statistics[key]}\n')
+                        
+                    file_stream.write('\n===== Word Analysis =====\n')
+                    for key in word_analysis_statistics.keys():
+                        file_stream.write(f'{key} : {word_analysis_statistics[key]}\n')
+                    file_stream.write('----- Top 10 words -----\n')
+                    for key in top_words.keys():
+                        file_stream.write(f'{key} appears {top_words[key]} times\n')
+                    file_stream.write('----- List of unique words -----\n')
+                    for word in unique_words:
+                        file_stream.write(f'{word}, ')
 
-        file_stream.write('\n\n===== Sentence Analysis =====\n')
-        for key in sentence_analysis_statistics.keys():
-            file_stream.write(f'{key} : {sentence_analysis_statistics[key]}\n')
-            
-        file_stream.write('\n===== Character Analysis =====\n')
-        for key in character_analysis_statistics.keys():
-            file_stream.write(f'{key} : {character_analysis_statistics[key]}\n')
-        file_stream.write('----- Top 12 Letters -----\n')
-        for letter in sorted_letters.keys():
-            file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
+                    file_stream.write('\n\n===== Sentence Analysis =====\n')
+                    for key in sentence_analysis_statistics.keys():
+                        file_stream.write(f'{key} : {sentence_analysis_statistics[key]}\n')
+                        
+                    file_stream.write('\n===== Character Analysis =====\n')
+                    for key in character_analysis_statistics.keys():
+                        file_stream.write(f'{key} : {character_analysis_statistics[key]}\n')
+                    file_stream.write('----- Top 12 Letters -----\n')
+                    for letter in sorted_letters.keys():
+                        file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
+            except Exception as e:
+                print(f'Error exporting statistics: {e}')
+                return
+    else:
+        #Normal report, not text file
+        if not json:
+            try:
+                with open(file_name, 'w', encoding='utf-8') as file_stream:
+                    file_stream.write('===== Basic Statistics =====\n')
+                    for key in basic_statistics.keys():
+                        file_stream.write(f'{key} : {basic_statistics[key]}\n')
+                        
+                    file_stream.write('\n===== Word Analysis =====\n')
+                    for key in word_analysis_statistics.keys():
+                        if key not in ('word_lengths_unique', 'word_lengths_duplicates'): #Don't include these in simple report
+                            file_stream.write(f'{key} : {word_analysis_statistics[key]}\n')
+                    file_stream.write('----- Top 10 words -----\n')
+                    for key in top_words.keys():
+                        file_stream.write(f'{key} appears {top_words[key]} times\n')
+
+                    file_stream.write('\n\n===== Sentence Analysis =====\n')
+                    for key in sentence_analysis_statistics.keys():
+                        if key not in ('sentence_lengths', 'only_lengths', 'longest_sentence', 'shortest_sentence'): #Don't include these in simple report
+                            file_stream.write(f'{key} : {sentence_analysis_statistics[key]}\n')
+                        
+                    file_stream.write('\n===== Character Analysis =====\n')
+                    for key in character_analysis_statistics.keys():
+                        file_stream.write(f'{key} : {character_analysis_statistics[key]}\n')
+                    file_stream.write('----- Top 12 Letters -----\n')
+                    for letter in sorted_letters.keys():
+                        file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
+            except Exception as e:
+                print(f'Error exporting statistics: {e}')
+                return
+        
+    print(f'Export successful, {file_name} created in current directory.')
     return
 #Creates and displays pie chart
 def create_pie_chart(labels, sizes, title=''):
@@ -453,14 +506,14 @@ def handle_choices(choice, state):
                 print(f'Shortest sentence: {statistics['shortest_sentence_str']}\n')
                 
                 keys_as_strings = []
-                for i in statistics['top_10_sentences'].keys():
+                for i in statistics['top_10_sentence_lengths'].keys():
                     keys_as_strings.append(str(i))
                 
                 create_histogram(statistics['only_lengths'], bins=10, title='Sentence length distribution\n' + state['current_file'], 
                                  textbox_text=f'Average words per sentence: {round(statistics['avg_words_per_sentence'],3)}\n' + 
                                  f'Longest sentence: {len(statistics['longest_sentence'])} (Printed in terminal)\n' + 
                                  f'Shortest sentence: {len(statistics['shortest_sentence'])} (Printed in terminal)')
-                create_bar_graph(keys_as_strings, statistics['top_10_sentences'].values(), title='Top 10 Lengths of Sentences\n' + state['current_file'], 
+                create_bar_graph(keys_as_strings, statistics['top_10_sentence_lengths'].values(), title='Top 10 Lengths of Sentences\n' + state['current_file'], 
                                  x_label='Sentence Length', y_label='Amount', text_rotation=False)
             else:
                 print('Please load a file first.')
@@ -482,7 +535,28 @@ def handle_choices(choice, state):
         case '6':
             if state.get('current_file'):
                 clear_terminal()
-                export_statistics(state['current_file'])
+                user_input = input('Do you want a comprehensive report?\n1. Comprehensive\n2. Normal\n')
+                if user_input == '1' or user_input.lower() == 'comprehensive':
+                    clear_terminal()
+                    user_input = input('Do you want the report as JSON or text file?\n1. JSON\n2. Text\n')
+                    if user_input == '2' or user_input.lower() == 'text':
+                        export_statistics(state['current_file'], comprehensive=True)
+                    elif user_input == '1' or user_input.lower() == 'json':
+                        export_statistics(state['current_file'], comprehensive=True, json=True)
+                    else:
+                        print('Please enter a valid choice.')
+                elif user_input == '2' or user_input.lower() == 'normal':
+                    clear_terminal()
+                    user_input = input('Do you want the report as JSON or text file?\n1. JSON\n2. Text\n')
+                    if user_input == '2' or user_input.lower() == 'text':
+                        export_statistics(state['current_file'])
+                    elif user_input == '1' or user_input.lower() == 'json':
+                        export_statistics(state['current_file'], json=True)
+                    else:
+                        print('Please enter a valid choice.')
+                else:
+                    print('Please enter a valid choice.')
+                
             else:
                 print('Please load a file first.')
         case 'x':
@@ -499,15 +573,20 @@ def print_menu():
 #Display character analysis (with visualisation)
 #Export results
 #Exit programme
-
+    print('--------------------------------')
     print('1. Load a text file')
-    print('2. Display basic statistics (with visualisation)')
-    print('3. Show word frequency analysis (with visualisation)')
-    print('4. Display sentence analysis (with visualisation)')
-    print('5. Display character analysis (with visualisation)')
+    print('2. Display basic statistics')
+    print('3. Display word frequency analysis')
+    print('4. Display sentence analysis')
+    print('5. Display character analysis')
     print('6. Export results')
     print('x. Exit programme')
-
+    print('--------------------------------')
+    if state.get('current_file'):
+        print(f'Loaded file: {state['current_file']}')
+    else:
+        print('No file loaded.')
+    print('--------------------------------')
     user_input = input('Please enter choice: ')
     return user_input #Returns user choice
 
