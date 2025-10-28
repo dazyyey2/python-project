@@ -160,20 +160,22 @@ def sentence_analysis(file):
     sentences = []
     sentence_stoppers = ['.','?','!']
     avg_words_per_sentence = 0
-    
+    total_words = 0
+
     try:
         with open(file, 'r', encoding='utf-8') as file_stream:
             line = file_stream.readline() #Read first line of the file
             while line != '':
-                line = line.strip() #Remove newlines/blankspaces
-                
+                #Count total words
+                for word in line.split():
+                    total_words += 1
                 #Split line into sentences
                 for char in line:
                     current_sentence += char
                     if char in sentence_stoppers:
                         sentence = current_sentence.strip()
                         if len(sentence.split()) >= 2: #If there are more than 2 words in the sentence add it, otherwise skip
-                            if sentence != '' and sentence not in sentence_stoppers:
+                            if sentence != '' and sentence not in sentence_stoppers: #If sentence isn't empty and is not something like ..
                                 sentences.append(sentence)
                         current_sentence = ''
                         
@@ -181,7 +183,6 @@ def sentence_analysis(file):
     except Exception as e:
         print(f'Unknown error reading file: {e}')
     
-    total_words = get_basic_statistics(file)['total_words'] #Not efficient
     if len(sentences) != 0:
         avg_words_per_sentence = total_words/len(sentences)
     else:
