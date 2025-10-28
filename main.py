@@ -90,6 +90,7 @@ def word_analysis(file):
     word_lengths_duplicates = []
     unique_words_count = 0
     common_words = {}
+    words_above_6_chars = 0
     
     try:
         with open(file, 'r', encoding='utf-8') as file_stream:
@@ -110,6 +111,10 @@ def word_analysis(file):
                 for word in line_filtered:
                     unique_words.add(word.capitalize())
                     word_lengths_duplicates.append(len(word))
+                    #Count words above 6 chars (for LIX score)
+                    if len(word) > 6:
+                        words_above_6_chars += 1
+                    
                     #Count how many times each word duplicates and save it in common_words
                     if word.capitalize() in common_words:
                         common_words[word.capitalize()] += 1
@@ -142,6 +147,7 @@ def word_analysis(file):
     statistics['unique_words_count'] = unique_words_count
     statistics['word_lengths_unique'] = word_lengths_unique
     statistics['word_lengths_duplicates'] = word_lengths_duplicates
+    statistics['words_above_6_chars'] = words_above_6_chars
 
     return statistics, top_10_words, unique_words
 #Sentence analysis (average words per sentence, longest and shortest, sentence distribution)
@@ -304,7 +310,15 @@ def character_analysis(file):
     statistics['other_chars'] = other_chars
     
     return statistics, sorted_letters
-def export_statistics(file_to_analyse, comprehensive=False, json=False):
+def calculate_lix(file):
+    o = get_basic_statistics(file)['total_words'] #Total words
+    m = len(sentence_analysis(file)['sentence_lengths']) #Total sentences
+    l = word_analysis(file)[0]['words_above_6_chars'] #Amount of words above 6 characters (access statistics dict from tuple with [0])
+    
+    LIX = (o/m)+((l*100)/o)
+    return round(LIX, 1)
+    
+def export_statistics(file_to_analyse, comprehensive=False, json_export=False):
     cwd = os.getcwd()
     file_name = ''
     
@@ -314,13 +328,14 @@ def export_statistics(file_to_analyse, comprehensive=False, json=False):
     word_analysis_statistics, top_words, unique_words = word_analysis(file_to_analyse)
     sentence_analysis_statistics = sentence_analysis(file_to_analyse)
     character_analysis_statistics, sorted_letters = character_analysis(file_to_analyse)
+    lix = calculate_lix(file_to_analyse)
     
     if comprehensive:
         file_name = 'comprehensive_export'
     else:
         file_name = 'normal_export'
     
-    if json:
+    if json_export:
         file_name += '.json'
     else:
         file_name += '.txt'
@@ -330,12 +345,14 @@ def export_statistics(file_to_analyse, comprehensive=False, json=False):
         return
     
     if comprehensive:
-        if not json:
+        #Comprehensive report, text file
+        if not json_export:
             try:
                 with open(file_name, 'w', encoding='utf-8') as file_stream:
                     file_stream.write('===== Basic Statistics =====\n')
                     for key in basic_statistics.keys():
                         file_stream.write(f'{key} : {basic_statistics[key]}\n')
+                    file_stream.write(f'LIX: {str(lix)}')
                         
                     file_stream.write('\n===== Word Analysis =====\n')
                     for key in word_analysis_statistics.keys():
@@ -358,16 +375,36 @@ def export_statistics(file_to_analyse, comprehensive=False, json=False):
                     for letter in sorted_letters.keys():
                         file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
             except Exception as e:
-                print(f'Error exporting statistics: {e}')
+                print(f'Error exporting text file: {e}')
+                return
+        #Comprehensive report, JSON
+        else:
+            try:
+                json_export_dict = {}
+                
+                json_export_dict['basic_statistics'] = basic_statistics
+                json_export_dict['LIX_score'] = lix
+                json_export_dict['word_analysis'] = word_analysis_statistics
+                json_export_dict['top_10_words'] = top_words
+                json_export_dict['sentence_analysis_statistics'] = sentence_analysis_statistics
+                json_export_dict['character_analysis_statistics'] = character_analysis_statistics
+                json_export_dict['sorted_letters'] = sorted_letters
+
+                with open(file_name, 'w', encoding='utf-8') as json_file_stream:
+                    json.dump(json_export_dict, json_file_stream, indent=4, ensure_ascii=False)
+
+            except Exception as e:
+                print(f'Error exporting JSON: {e}')
                 return
     else:
-        #Normal report, not text file
-        if not json:
+        #Normal report, text file
+        if not json_export:
             try:
                 with open(file_name, 'w', encoding='utf-8') as file_stream:
                     file_stream.write('===== Basic Statistics =====\n')
                     for key in basic_statistics.keys():
                         file_stream.write(f'{key} : {basic_statistics[key]}\n')
+                    file_stream.write(f'LIX: {str(lix)}')
                         
                     file_stream.write('\n===== Word Analysis =====\n')
                     for key in word_analysis_statistics.keys():
@@ -389,7 +426,35 @@ def export_statistics(file_to_analyse, comprehensive=False, json=False):
                     for letter in sorted_letters.keys():
                         file_stream.write(f'{letter} appears {sorted_letters[letter]} times\n')
             except Exception as e:
-                print(f'Error exporting statistics: {e}')
+                print(f'Error exporting text file: {e}')
+                return
+        #Normal report, JSON
+        else:
+            try:
+                json_export_dict = {}
+                word_analysis_statistics_filtered = {}
+                sentence_analysis_statistics_filtered = {}
+                
+                for key in word_analysis_statistics:
+                    if key not in ('word_lengths_unique', 'word_lengths_duplicates'):
+                        word_analysis_statistics_filtered[key] = word_analysis_statistics[key]
+                for key in sentence_analysis_statistics:
+                    if key not in ('sentence_lengths', 'only_lengths', 'longest_sentence', 'shortest_sentence'):
+                        sentence_analysis_statistics_filtered[key] = sentence_analysis_statistics[key]
+                
+                json_export_dict['basic_statistics'] = basic_statistics
+                json_export_dict['LIX_score'] = lix
+                json_export_dict['word_analysis'] = word_analysis_statistics_filtered
+                json_export_dict['top_10_words'] = top_words
+                json_export_dict['sentence_analysis_statistics'] = sentence_analysis_statistics_filtered
+                json_export_dict['character_analysis_statistics'] = character_analysis_statistics
+                json_export_dict['sorted_letters'] = sorted_letters
+
+                with open(file_name, 'w', encoding='utf-8') as json_file_stream:
+                    json.dump(json_export_dict, json_file_stream, indent=4, ensure_ascii=False)
+
+            except Exception as e:
+                print(f'Error exporting JSON: {e}')
                 return
         
     print(f'Export successful, {file_name} created in current directory.')
@@ -476,12 +541,13 @@ def handle_choices(choice, state):
             if state.get('current_file'):
                 clear_terminal()
                 statistics = get_basic_statistics(state['current_file'])
-
-                #Create bar graph of basic statistics
+                lix = calculate_lix(state['current_file'])
+                
+                #Create bar graph of basic statistics and LIX
                 labels = ['Lines', 'Words', 'Characters (w/ spaces)', 'Characters (no spaces)']
                 sizes = [statistics['total_lines'], statistics['total_words'], statistics['total_characters'], statistics['total_characters_no_spaces']]
                 create_bar_graph(labels, sizes, 'Basic Statistics\n' + state['current_file'],
-                                 textbox_text=f'Average words per line: {statistics['avg_words_per_line']}\nAverage characters per word: {statistics['avg_characters_per_word']}',
+                                 textbox_text=f'Average words per line: {statistics['avg_words_per_line']}\nAverage characters per word: {statistics['avg_characters_per_word']}\nLIX score: {lix}',
                                  textbox_left=True)
             else:
                 print('Please load a file first.')
@@ -542,7 +608,7 @@ def handle_choices(choice, state):
                     if user_input == '2' or user_input.lower() == 'text':
                         export_statistics(state['current_file'], comprehensive=True)
                     elif user_input == '1' or user_input.lower() == 'json':
-                        export_statistics(state['current_file'], comprehensive=True, json=True)
+                        export_statistics(state['current_file'], comprehensive=True, json_export=True)
                     else:
                         print('Please enter a valid choice.')
                 elif user_input == '2' or user_input.lower() == 'normal':
@@ -551,7 +617,7 @@ def handle_choices(choice, state):
                     if user_input == '2' or user_input.lower() == 'text':
                         export_statistics(state['current_file'])
                     elif user_input == '1' or user_input.lower() == 'json':
-                        export_statistics(state['current_file'], json=True)
+                        export_statistics(state['current_file'], json_export=True)
                     else:
                         print('Please enter a valid choice.')
                 else:
@@ -560,12 +626,12 @@ def handle_choices(choice, state):
             else:
                 print('Please load a file first.')
         case 'x':
-            return True #Exit program loop
+            return state, True #Exit program loop
         case _:
             print('Please enter a valid choice.')
-    return False #Continue program loop
+    return state, False #Continue program loop
 #Print menu 
-def print_menu():
+def print_menu(state):
 #Load a text file
 #Display basic statistics (with visualisation)
 #Show word frequency analysis (with visualisation)
@@ -593,8 +659,8 @@ def print_menu():
 state = {}
 exit_boolean = False
 while not exit_boolean: #Program loop
-    user_choice = print_menu()
-    exit_boolean = handle_choices(user_choice, state)
+    user_choice = print_menu(state)
+    state, exit_boolean = handle_choices(user_choice, state)
 
 
 # Dictionaries for counting words
